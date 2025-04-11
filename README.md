@@ -1,0 +1,225 @@
+# Browser Tab Refresher (브라우저 탭 새로고침)
+
+자주 사용하는 브라우저 탭들을 자동으로 새로고침해주는 크로스 플랫폼 유틸리티입니다.
+
+## 주요 기능
+
+- 열려 있는 Chrome 및 Edge 브라우저 탭 자동 감지
+- 원하는 탭만 선택하여 관리 목록에 추가
+- 선택한 탭 수동 또는 자동 새로고침
+- 새로고침 간격 설정 가능 (최소 5초)
+- 크로스 플랫폼 지원 (Windows, macOS)
+- F5 또는 Ctrl+R 단축키로 빠른 새로고침
+- 설정 자동 저장
+
+## 스크린샷
+
+(스크린샷 이미지 추가 예정)
+
+## 요구사항
+
+- Python 3.7 이상
+- PySide6
+- PyAutoGUI
+- PyGetWindow (Windows)
+- AppKit (macOS)
+
+## 개발 환경 설정
+
+### Windows에서 설정
+
+1. Python 3.7 이상 설치 (https://www.python.org/downloads/)
+
+2. 가상 환경 생성 및 활성화:
+
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
+
+3. 필요한 패키지 설치:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### macOS에서 설정
+
+1. Python 3.7 이상 설치 (Homebrew 사용):
+
+   ```bash
+   brew install python
+   ```
+
+2. 가상 환경 생성 및 활성화:
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. 필요한 패키지 설치:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Linux에서 설정
+
+1. Python 3.7 이상 설치:
+
+   ```bash
+   sudo apt-get update
+   sudo apt-get install python3 python3-venv python3-pip
+   ```
+
+2. 가상 환경 생성 및 활성화:
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. 필요한 패키지 설치:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## 프로젝트 구조
+
+```
+browser-tab-refresher/
+├── main.py              # 메인 실행 파일
+├── gui.py              # GUI 구현
+├── tab_manager.py      # 탭 관리 로직
+├── app_packager.py     # 실행 파일 패키징 스크립트
+├── requirements.txt    # 필요한 패키지 목록
+├── tab_handles.json    # 저장된 탭 정보
+├── doc/               # 문서 디렉토리
+│   └── Browser_Refresh.md  # 상세 설계 문서
+├── LICENSE            # MIT 라이센스
+└── README.md         # 이 파일
+```
+
+## 설치 방법
+
+1. 저장소 클론:
+
+   ```bash
+   git clone https://github.com/kizmonster/browser-tab-refresher.git
+   cd browser-tab-refresher
+   ```
+
+2. 가상 환경 설정 (위의 개발 환경 설정 참조)
+
+3. 필요한 패키지 설치:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## 개발 모드로 실행
+
+가상 환경이 활성화된 상태에서:
+
+```bash
+# 기본 실행
+python main.py
+
+# 디버그 모드로 실행
+python main.py --debug
+
+# Chrome 브라우저로 실행하고 자동 새로고침 활성화
+python main.py --browser chrome --auto
+```
+
+## 문제 해결
+
+### 가상 환경 관련 문제
+
+1. 가상 환경 활성화가 안 되는 경우:
+
+   - Windows: `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` 실행 후 다시 시도
+   - Unix: `chmod +x venv/bin/activate` 실행 후 다시 시도
+
+2. 패키지 설치 오류:
+
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+3. PyAutoGUI 설치 문제 (macOS):
+   ```bash
+   brew install python-tk
+   pip install pyautogui
+   ```
+
+### 브라우저 인식 문제
+
+1. Chrome이나 Edge가 인식되지 않는 경우:
+
+   - 브라우저를 완전히 종료 후 재시작
+   - 관리자 권한으로 프로그램 실행
+
+2. 새로고침이 작동하지 않는 경우:
+   - 브라우저 창이 최소화되어 있지 않은지 확인
+   - 다른 프로그램이 키보드 입력을 차단하고 있지 않은지 확인
+
+## 사용 방법
+
+1. 프로그램 실행:
+
+   ```bash
+   python main.py
+   ```
+
+2. 브라우저 선택 (Chrome 또는 Edge)
+
+3. '열린 브라우저 탭 스캔' 버튼 클릭하여 현재 열려있는 탭 찾기
+
+4. 스캔된 탭 중 자동 새로고침 하고 싶은 탭을 더블클릭하여 관리 목록에 추가
+
+5. 관리 탭에서 다음 기능 사용:
+   - 선택한 탭 새로고침: 선택한 탭만 새로고침
+   - 모든 탭 새로고침: 모든 관리 탭 일괄 새로고침
+   - 자동 새로고침: 설정한 간격으로 자동 새로고침 활성화
+
+## 명령줄 옵션
+
+```bash
+python main.py --help
+```
+
+다음과 같은 옵션을 사용할 수 있습니다:
+
+- `--browser {chrome,edge}`: 사용할 브라우저 지정
+- `--config CONFIG`: 설정 파일 경로 지정
+- `--debug`: 디버그 모드 활성화
+- `--refresh`: 시작 시 저장된 모든 탭 즉시 새로고침
+- `--auto`: 시작 시 자동 새로고침 활성화
+
+## 빌드하기
+
+실행 파일로 빌드하려면:
+
+```bash
+python app_packager.py
+```
+
+빌드된 실행 파일은 `dist` 디렉토리에 생성됩니다.
+
+## 라이센스
+
+이 프로젝트는 MIT 라이센스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+## 기여하기
+
+버그 리포트, 기능 요청, 풀 리퀘스트 모두 환영합니다!
+
+1. 저장소 포크
+2. 기능 브랜치 생성 (`git checkout -b feature/amazing-feature`)
+3. 변경사항 커밋 (`git commit -m 'Add some amazing feature'`)
+4. 브랜치 푸시 (`git push origin feature/amazing-feature`)
+5. 풀 리퀘스트 오픈
+
+## 연락처
+
+작성자: Kizmonster - GitHub: [@kizmonster](https://github.com/kizmonster)
