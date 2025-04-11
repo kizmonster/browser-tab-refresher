@@ -34,6 +34,7 @@ class TabManager:
         self.browser_type = "chrome"  # 기본값
         self.managed_tabs = []
         self.system = SYSTEM  # 운영체제 확인 (Windows, Darwin, Linux)
+        self.scheduled_refreshes = {}  # 예약된 새로고침 시간 저장
         
         # 설정에서 관리 탭 초기화
         if tab_handles is None:
@@ -41,12 +42,14 @@ class TabManager:
         else:
             self.browser_type = tab_handles.get("browser_type", "chrome")
             self.managed_tabs = tab_handles.get("managed_tabs", [])
+            self.scheduled_refreshes = tab_handles.get("scheduled_refreshes", {})
     
     def get_tab_handles(self):
         """현재 탭 설정 반환"""
         return {
             "browser_type": self.browser_type,
-            "managed_tabs": self.managed_tabs
+            "managed_tabs": self.managed_tabs,
+            "scheduled_refreshes": self.scheduled_refreshes
         }
     
     def load_tabs(self):
@@ -57,19 +60,22 @@ class TabManager:
                     tab_data = json.load(f)
                     self.browser_type = tab_data.get("browser_type", "chrome")
                     self.managed_tabs = tab_data.get("managed_tabs", [])
+                    self.scheduled_refreshes = tab_data.get("scheduled_refreshes", {})
                     logger.info(f"{len(self.managed_tabs)}개의 탭 정보를 로드했습니다.")
         except Exception as e:
             logger.error(f"탭 정보 로드 오류: {e}")
             # 기본값 설정
             self.browser_type = "chrome"
             self.managed_tabs = []
+            self.scheduled_refreshes = {}
     
     def save_tabs(self):
         """탭 정보 저장"""
         try:
             tab_data = {
                 "browser_type": self.browser_type,
-                "managed_tabs": self.managed_tabs
+                "managed_tabs": self.managed_tabs,
+                "scheduled_refreshes": self.scheduled_refreshes
             }
             with open(self.tab_info_file, 'w', encoding='utf-8') as f:
                 json.dump(tab_data, f, ensure_ascii=False, indent=2)
@@ -404,4 +410,93 @@ class TabManager:
             self.browser_type = browser_type.lower()
             self.save_tabs()
             return True
-        return False 
+        return False
+
+    def add_scheduled_refresh(self, window_id, times):
+        """
+        특정 탭에 대한 예약 새로고침 시간 추가
+        
+        Args:
+            window_id: 브라우저 창 ID
+            times: 새로고침할 시간 목록 (HH:MM 형식의 문자열 리스트)
+        """
+        # 시간 형식 검증
+        validated_times = []
+        for time_str in times:
+            try:
+                # 시간 형식 검증 (HH:MM)
+                hour, minute = map(int, time_str.split(':'))
+                if 0 <= hour <= 23 and 0 <= minute <= 59:
+                    validated_times.append(f"{hour:02d}:{minute:02d}")
+                else:
+                    logger.error(f"잘못된 시간 형식: {time_str}")
+            except ValueError:
+                logger.error(f"잘못된 시간 형식: {time_str}")
+                continue
+        
+        # 창 ID를 문자열로 변환 (JSON 직렬화를 위해)
+        window_id_str = str(window_id)
+        
+        # 기존 시간이 있으면 업데이트, 없으면 새로 추가
+        if validated_times:
+            self.scheduled_refreshes[window_id_str] = sorted(validated_times)
+            self.save_tabs()
+            logger.info(f"창 {window_id}에 {len(validated_times)}개의 예약 새로고침 시간이 설정되었습니다.")
+            return True
+        return False
+
+    def remove_scheduled_refresh(self, window_id, time_str=None):
+        """
+        예약된 새로고침 시간 제거
+        
+        Args:
+            window_id: 브라우저 창 ID
+            time_str: 제거할 특정 시간 (None이면 모든 시간 제거)
+        """
+        window_id_str = str(window_id)
+        if window_id_str in self.scheduled_refreshes:
+            if time_str is None:
+                # 모든 예약 시간 제거
+                del self.scheduled_refreshes[window_id_str]
+                logger.info(f"창 {window_id}의 모든 예약 새로고침이 제거되었습니다.")
+            else:
+                # 특정 시간만 제거
+                times = self.scheduled_refreshes[window_id_str]
+                if time_str in times:
+                    times.remove(time_str)
+                    if not times:  # 시간이 더 이상 없으면 키 자체를 제거
+                        del self.scheduled_refreshes[window_id_str]
+                    else:
+                        self.scheduled_refreshes[window_id_str] = times
+                    logger.info(f"창 {window_id}의 {time_str} 예약 새로고침이 제거되었습니다.")
+            self.save_tabs()
+            return True
+        return False
+
+    def get_scheduled_refreshes(self, window_id=None):
+        """
+        예약된 새로고침 시간 조회
+        
+        Args:
+            window_id: 특정 창의 ID (None이면 모든 창의 예약 시간 반환)
+        """
+        if window_id is None:
+            return self.scheduled_refreshes
+        return self.scheduled_refreshes.get(str(window_id), [])
+
+    def check_scheduled_refreshes(self):
+        """현재 시간에 예약된 새로고침 실행"""
+        current_time = time.strftime("%H:%M")
+        refreshed_tabs = []
+        
+        for window_id_str, times in self.scheduled_refreshes.items():
+            if current_time in times:
+                try:
+                    window_id = int(window_id_str)
+                    if self.refresh_tab(window_id):
+                        refreshed_tabs.append(window_id)
+                        logger.info(f"예약된 새로고침 실행: 창 {window_id}, 시간 {current_time}")
+                except ValueError:
+                    logger.error(f"잘못된 창 ID 형식: {window_id_str}")
+        
+        return refreshed_tabs 

@@ -3,7 +3,8 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QPushButton, QVBoxLayout,
                             QHBoxLayout, QLabel, QLineEdit, QListWidget, 
                             QListWidgetItem, QMessageBox, QInputDialog, QDialog,
                             QFormLayout, QTabWidget, QStatusBar, QGroupBox,
-                            QRadioButton, QButtonGroup, QProgressBar, QApplication)
+                            QRadioButton, QButtonGroup, QProgressBar, QApplication,
+                            QTimeEdit, QScrollArea)
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtCore import Qt, QTimer, Signal, QObject, Slot
 import platform
@@ -57,6 +58,71 @@ class TabNameDialog(QDialog):
     
     def get_name(self):
         return self.name_input.text()
+
+class TimeScheduleDialog(QDialog):
+    def __init__(self, current_times=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("새로고침 시간 설정")
+        self.current_times = current_times or []
+        self.times = []
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout()
+        
+        # 시간 목록
+        self.time_list = QListWidget()
+        self.update_time_list()
+        layout.addWidget(QLabel("설정된 시간:"))
+        layout.addWidget(self.time_list)
+        
+        # 새 시간 추가
+        time_input_layout = QHBoxLayout()
+        self.time_edit = QTimeEdit()
+        self.time_edit.setDisplayFormat("HH:mm")
+        add_btn = QPushButton("추가")
+        add_btn.clicked.connect(self.add_time)
+        time_input_layout.addWidget(self.time_edit)
+        time_input_layout.addWidget(add_btn)
+        layout.addLayout(time_input_layout)
+        
+        # 삭제 버튼
+        remove_btn = QPushButton("선택한 시간 삭제")
+        remove_btn.clicked.connect(self.remove_selected_time)
+        layout.addWidget(remove_btn)
+        
+        # 확인/취소 버튼
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("확인")
+        ok_btn.clicked.connect(self.accept)
+        cancel_btn = QPushButton("취소")
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+        
+        self.setLayout(layout)
+    
+    def update_time_list(self):
+        self.time_list.clear()
+        for time_str in sorted(self.times):
+            self.time_list.addItem(time_str)
+    
+    def add_time(self):
+        time_str = self.time_edit.time().toString("HH:mm")
+        if time_str not in self.times:
+            self.times.append(time_str)
+            self.update_time_list()
+    
+    def remove_selected_time(self):
+        current_item = self.time_list.currentItem()
+        if current_item:
+            time_str = current_item.text()
+            self.times.remove(time_str)
+            self.update_time_list()
+    
+    def get_times(self):
+        return sorted(self.times)
 
 class MainWindow(QMainWindow):
     def __init__(self, tab_manager):
@@ -177,6 +243,13 @@ class MainWindow(QMainWindow):
     
     def setup_manage_tab(self):
         """탭 관리 탭 UI 설정"""
+        # 스크롤 영역 추가
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll.setWidget(scroll_widget)
+        self.tab_manage_layout = QVBoxLayout(scroll_widget)
+        
         # Managed tabs list
         self.managed_tabs_label = QLabel("관리 중인 탭:")
         self.managed_tabs_list = QListWidget()
@@ -195,9 +268,13 @@ class MainWindow(QMainWindow):
         button_layout.addWidget(self.refresh_all_button)
         button_layout.addWidget(self.remove_tab_button)
         
+        # 새로고침 설정 그룹
+        refresh_settings_group = QGroupBox("새로고침 설정")
+        refresh_settings_layout = QVBoxLayout()
+        
         # 자동 새로고침 설정
-        auto_refresh_layout = QHBoxLayout()
-        self.auto_refresh_check = QRadioButton("자동 새로고침")
+        interval_refresh_layout = QHBoxLayout()
+        self.auto_refresh_check = QRadioButton("간격 기반 새로고침")
         self.auto_refresh_check.setChecked(self.auto_refresh_enabled)
         self.auto_refresh_check.toggled.connect(self.toggle_auto_refresh)
         
@@ -206,29 +283,62 @@ class MainWindow(QMainWindow):
         self.auto_refresh_interval_input.setFixedWidth(60)
         self.auto_refresh_interval_input.textChanged.connect(self.update_refresh_interval)
         
-        auto_refresh_layout.addWidget(self.auto_refresh_check)
-        auto_refresh_layout.addWidget(self.auto_refresh_interval_label)
-        auto_refresh_layout.addWidget(self.auto_refresh_interval_input)
-        auto_refresh_layout.addStretch(1)
+        interval_refresh_layout.addWidget(self.auto_refresh_check)
+        interval_refresh_layout.addWidget(self.auto_refresh_interval_label)
+        interval_refresh_layout.addWidget(self.auto_refresh_interval_input)
+        interval_refresh_layout.addStretch(1)
+        
+        # 시간 기반 새로고침 설정
+        time_refresh_layout = QHBoxLayout()
+        self.time_refresh_check = QRadioButton("시간 기반 새로고침")
+        self.time_refresh_check.toggled.connect(self.toggle_time_refresh)
+        
+        self.schedule_time_button = QPushButton("시간 설정")
+        self.schedule_time_button.clicked.connect(self.show_time_schedule_dialog)
+        self.schedule_time_button.setEnabled(False)
+        
+        time_refresh_layout.addWidget(self.time_refresh_check)
+        time_refresh_layout.addWidget(self.schedule_time_button)
+        time_refresh_layout.addStretch(1)
+        
+        # 새로고침 모드 그룹으로 묶기
+        self.refresh_mode_group = QButtonGroup()
+        self.refresh_mode_group.addButton(self.auto_refresh_check)
+        self.refresh_mode_group.addButton(self.time_refresh_check)
+        
+        refresh_settings_layout.addLayout(interval_refresh_layout)
+        refresh_settings_layout.addLayout(time_refresh_layout)
+        refresh_settings_group.setLayout(refresh_settings_layout)
         
         # 상태 정보
         self.refresh_status_layout = QFormLayout()
         self.next_refresh_label = QLabel("다음 새로고침: 비활성")
         self.last_refresh_label = QLabel("마지막 새로고침: 없음")
+        self.scheduled_times_label = QLabel("예약된 시간: 없음")
         
         self.refresh_status_layout.addRow("상태:", self.next_refresh_label)
         self.refresh_status_layout.addRow("", self.last_refresh_label)
+        self.refresh_status_layout.addRow("", self.scheduled_times_label)
         
         # Add to layout
         self.tab_manage_layout.addWidget(self.managed_tabs_label)
         self.tab_manage_layout.addWidget(self.managed_tabs_list)
         self.tab_manage_layout.addLayout(button_layout)
-        self.tab_manage_layout.addLayout(auto_refresh_layout)
+        self.tab_manage_layout.addWidget(refresh_settings_group)
         self.tab_manage_layout.addLayout(self.refresh_status_layout)
         self.tab_manage_layout.addStretch(1)
         
+        # Add scroll area to tab
+        self.tab_manage_widget.setLayout(QVBoxLayout())
+        self.tab_manage_widget.layout().addWidget(scroll)
+        
         # 현재 관리 중인 탭 표시
         self.update_managed_tabs_list()
+        
+        # 시간 체크 타이머 설정
+        self.time_check_timer = QTimer()
+        self.time_check_timer.timeout.connect(self.check_scheduled_refreshes)
+        self.time_check_timer.start(30000)  # 30초마다 체크
     
     def setup_settings_tab(self):
         """설정 탭 UI 설정"""
@@ -453,23 +563,19 @@ class MainWindow(QMainWindow):
     
     def update_status_labels(self):
         """상태 레이블 업데이트"""
-        if self.auto_refresh_enabled:
-            # 다음 새로고침 시간 계산
-            if self.refresh_timer.isActive():
-                remaining_ms = self.refresh_timer.remainingTime()
-                remaining_sec = int(remaining_ms / 1000)
-                self.next_refresh_label.setText(f"다음 새로고침: {remaining_sec}초 후")
-            else:
-                self.next_refresh_label.setText("다음 새로고침: 대기 중")
-        else:
-            self.next_refresh_label.setText("다음 새로고침: 비활성")
+        super().update_status_labels()  # 기존 상태 업데이트
         
-        # 마지막 새로고침 시간 표시
-        if self.last_refresh_time:
-            time_str = self.last_refresh_time.strftime("%H:%M:%S")
-            self.last_refresh_label.setText(f"마지막 새로고침: {time_str}")
+        # 예약된 시간 표시
+        selected_items = self.managed_tabs_list.selectedItems()
+        if selected_items:
+            window_id = selected_items[0].data(Qt.UserRole)
+            times = self.tab_manager.get_scheduled_refreshes(window_id)
+            if times:
+                self.scheduled_times_label.setText(f"예약된 시간: {', '.join(sorted(times))}")
+            else:
+                self.scheduled_times_label.setText("예약된 시간: 없음")
         else:
-            self.last_refresh_label.setText("마지막 새로고침: 없음")
+            self.scheduled_times_label.setText("예약된 시간: 탭을 선택하세요")
     
     def show_progress(self, value):
         """진행 표시줄 표시"""
@@ -501,4 +607,45 @@ class MainWindow(QMainWindow):
             # TabManager에 close 메서드가 없음
         except:
             pass
-        event.accept() 
+        event.accept()
+    
+    def toggle_time_refresh(self, checked):
+        """시간 기반 새로고침 토글"""
+        self.schedule_time_button.setEnabled(checked)
+        if checked:
+            self.show_time_schedule_dialog()
+        else:
+            # 선택된 탭의 예약된 시간 모두 제거
+            selected_items = self.managed_tabs_list.selectedItems()
+            for item in selected_items:
+                window_id = item.data(Qt.UserRole)
+                self.tab_manager.remove_scheduled_refresh(window_id)
+            self.update_status_labels()
+    
+    def show_time_schedule_dialog(self):
+        """시간 설정 다이얼로그 표시"""
+        selected_items = self.managed_tabs_list.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "알림", "시간을 설정할 탭을 선택해주세요.")
+            self.time_refresh_check.setChecked(False)
+            return
+        
+        window_id = selected_items[0].data(Qt.UserRole)
+        current_times = self.tab_manager.get_scheduled_refreshes(window_id)
+        
+        dialog = TimeScheduleDialog(current_times, self)
+        if dialog.exec_():
+            times = dialog.get_times()
+            if times:
+                self.tab_manager.add_scheduled_refresh(window_id, times)
+                self.update_status_labels()
+            else:
+                self.tab_manager.remove_scheduled_refresh(window_id)
+                self.time_refresh_check.setChecked(False)
+    
+    def check_scheduled_refreshes(self):
+        """예약된 새로고침 확인 및 실행"""
+        refreshed_tabs = self.tab_manager.check_scheduled_refreshes()
+        if refreshed_tabs:
+            self.update_last_refresh_time()
+            self.update_status_labels() 
