@@ -18,11 +18,49 @@
 
 ## 요구사항
 
+### 공통 요구사항
+
 - Python 3.7 이상
-- PySide6
-- PyAutoGUI
-- PyGetWindow (Windows)
-- AppKit (macOS)
+- pip (Python 패키지 관리자)
+- Git
+
+### Windows 추가 요구사항
+
+- Windows 10 이상 권장
+- Microsoft Visual C++ 14.0 이상
+  ```bash
+  # Microsoft C++ Build Tools 설치 (관리자 권한 필요)
+  winget install Microsoft.VisualStudio.2022.BuildTools
+  # 또는 https://visualstudio.microsoft.com/visual-cpp-build-tools/ 에서 다운로드
+  ```
+
+### macOS 추가 요구사항
+
+- Homebrew (패키지 관리자)
+- Xcode Command Line Tools
+  ```bash
+  xcode-select --install
+  ```
+- Python Tkinter
+  ```bash
+  brew install python-tk
+  ```
+
+### Linux 추가 요구사항
+
+- X11 개발 라이브러리
+
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get install python3-tk python3-dev
+  sudo apt-get install scrot
+  sudo apt-get install python3-xlib
+
+  # Fedora
+  sudo dnf install python3-tkinter python3-devel
+  sudo dnf install scrot
+  sudo dnf install python3-xlib
+  ```
 
 ## 개발 환경 설정
 
@@ -30,45 +68,71 @@
 
 1. Python 3.7 이상 설치 (https://www.python.org/downloads/)
 
-2. 가상 환경 생성 및 활성화:
+   - 설치 시 "Add Python to PATH" 옵션 체크
+   - 설치 완료 후 터미널에서 확인:
+     ```bash
+     python --version
+     pip --version
+     ```
+
+2. Microsoft C++ Build Tools 설치 (위 요구사항 참조)
+
+3. 가상 환경 생성 및 활성화:
 
    ```bash
    python -m venv venv
    .\venv\Scripts\activate
    ```
 
-3. 필요한 패키지 설치:
+4. 필요한 패키지 설치:
    ```bash
+   python -m pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
 ### macOS에서 설정
 
-1. Python 3.7 이상 설치 (Homebrew 사용):
+1. Homebrew 설치 (없는 경우):
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+2. Python 3.7 이상 설치:
 
    ```bash
    brew install python
+   brew install python-tk
    ```
 
-2. 가상 환경 생성 및 활성화:
+3. Xcode Command Line Tools 설치:
+
+   ```bash
+   xcode-select --install
+   ```
+
+4. 가상 환경 생성 및 활성화:
 
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
 
-3. 필요한 패키지 설치:
+5. 필요한 패키지 설치:
    ```bash
+   python -m pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
 ### Linux에서 설정
 
-1. Python 3.7 이상 설치:
+1. 시스템 패키지 업데이트 및 필수 패키지 설치:
 
    ```bash
    sudo apt-get update
-   sudo apt-get install python3 python3-venv python3-pip
+   sudo apt-get install python3 python3-venv python3-pip python3-tk python3-dev scrot python3-xlib
+   # 또는 Fedora:
+   # sudo dnf install python3 python3-virtualenv python3-pip python3-tkinter python3-devel scrot python3-xlib
    ```
 
 2. 가상 환경 생성 및 활성화:
@@ -80,6 +144,7 @@
 
 3. 필요한 패키지 설치:
    ```bash
+   python -m pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
@@ -162,6 +227,52 @@ python main.py --browser chrome --auto
 2. 새로고침이 작동하지 않는 경우:
    - 브라우저 창이 최소화되어 있지 않은지 확인
    - 다른 프로그램이 키보드 입력을 차단하고 있지 않은지 확인
+
+### 운영체제별 일반적인 문제
+
+#### Windows
+
+1. "Microsoft Visual C++ 14.0 is required" 오류:
+
+   - Microsoft C++ Build Tools 설치 필요 (위 요구사항 참조)
+
+2. PATH 관련 오류:
+   - Python이 시스템 PATH에 제대로 추가되었는지 확인
+   - 제어판 > 시스템 > 고급 시스템 설정 > 환경 변수에서 확인 및 수정
+
+#### macOS
+
+1. "Tkinter not found" 오류:
+
+   ```bash
+   brew install python-tk
+   ```
+
+2. "xcrun: error" 오류:
+
+   ```bash
+   xcode-select --install
+   ```
+
+3. PyAutoGUI 권한 문제:
+   - 시스템 환경설정 > 보안 및 개인 정보 보호 > 개인 정보 보호 > 손쉬운 사용에서 터미널 앱 허용
+
+#### Linux
+
+1. 스크린샷 관련 오류:
+
+   ```bash
+   sudo apt-get install scrot
+   # 또는
+   sudo dnf install scrot
+   ```
+
+2. X11 관련 오류:
+   ```bash
+   sudo apt-get install python3-xlib
+   # 또는
+   sudo dnf install python3-xlib
+   ```
 
 ## 사용 방법
 
