@@ -2,12 +2,21 @@
   "browser_type": "chrome",
   "managed_tabs": [
     {
-      "id": 1990707329,
-      "name": "make real • tldraw"
-    },
-    {
-      "id": 1990707319,
-      "name": "한글을 영어로"
+      "id": 1001,
+      "name": "울주군공공시설예약서비스",
+      "browser_type": "chrome"
     }
-  ]
+  ],
+  "scheduled_refreshes": {
+    "3001": [
+      "09:08:55",
+      "23:08:20"
+    ],
+    "2001": [
+      "11:20:00"
+    ],
+    "1001": [
+      "11:21:00"
+    ]
+  }
 }
